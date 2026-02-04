@@ -1,18 +1,59 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { Grocery } from '../api'
+import { updateGrocery } from '../api'
 
-interface Props {
+interface GroceryListProps {
   groceries: Grocery[]
   onDelete: (id: number) => void
+  onUpdate: (updated: Grocery) => void
 }
 
-export const GroceryList: React.FC<Props> = ({ groceries, onDelete }) => {
+export function GroceryList({ groceries, onDelete, onUpdate }: GroceryListProps) {
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editQuantity, setEditQuantity] = useState<number>(0)
+  const [editExpiresAt, setEditExpiresAt] = useState<string>('')
+
+  const startEdit = (g: Grocery) => {
+    setEditingId(g.id!)
+    setEditQuantity(g.quantity)
+    setEditExpiresAt(g.expiresAt)
+  }
+
+  const saveEdit = async (id: number) => {
+    const updated = await updateGrocery(id, {
+      quantity: editQuantity,
+      expiresAt: editExpiresAt,
+    })
+    onUpdate(updated)
+    setEditingId(null)
+  }
+
   return (
     <ul>
       {groceries.map(g => (
         <li key={g.id}>
-          {g.name} - {g.quantity} - expires {g.expiresAt}
-          <button onClick={() => g.id && onDelete(g.id)}>Delete</button>
+          {editingId === g.id ? (
+            <>
+              <input
+                type="number"
+                value={editQuantity}
+                onChange={e => setEditQuantity(Number(e.target.value))}
+              />
+              <input
+                type="date"
+                value={editExpiresAt}
+                onChange={e => setEditExpiresAt(e.target.value)}
+              />
+              <button onClick={() => saveEdit(g.id!)}>Save</button>
+              <button onClick={() => setEditingId(null)}>Cancel</button>
+            </>
+          ) : (
+            <>
+              {g.name} - {g.quantity} - {g.expiresAt}
+              <button onClick={() => startEdit(g)}>Edit</button>
+              <button onClick={() => onDelete(g.id!)}>Delete</button>
+            </>
+          )}
         </li>
       ))}
     </ul>

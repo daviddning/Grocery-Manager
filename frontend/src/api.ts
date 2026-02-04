@@ -27,3 +27,16 @@ export async function addGrocery(grocery: Grocery): Promise<Grocery> {
 export async function deleteGrocery(id: number) {
   await fetch(`${BASE_URL}/groceries/${id}`, { method: 'DELETE' })
 }
+
+// Update a grocery
+export async function updateGrocery(
+  id: number,
+  data: Partial<Omit<Grocery, 'id' | 'name'>>
+): Promise<Grocery> {
+  const res = await fetch(`${BASE_URL}/groceries/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  return res.json()
+}

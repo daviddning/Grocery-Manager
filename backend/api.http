@@ -1,0 +1,32 @@
+### Create grocery
+POST http://localhost:3001/api/groceries
+Content-Type: application/json
+
+{
+  "name": "Milk",
+  "quantity": 1,
+  "expiresAt": "2026-02-05"
+}
+
+###
+
+### Get groceries
+GET http://localhost:3001/api/groceries
+
+### Delete grocery
+DELETE http://localhost:3001/api/groceries/1
+
+### Update grocery
+PUT http://localhost:3001/api/groceries/1
+Content-Type: application/json
+
+{
+  "quantity": 3,
+  "expiresAt": "2026-02-06"
+}
+
+### Get groceries after update
+GET http://localhost:3001/api/groceries
+
+### Health check
+GET http://localhost:3001/api/health
