@@ -1,6 +1,9 @@
 import express from 'express'
 import cors from 'cors'
 import groceriesRouter from './routes/groceries'
+import { connectDB } from './config/db'
+
+connectDB()
 
 const app = express()
 

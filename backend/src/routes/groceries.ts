@@ -1,20 +1,16 @@
 import { Router } from 'express'
-import {
-  getAllGroceries,
-  addGrocery,
-  updateGrocery,
-  deleteGrocery,
-} from '../data/groceries'
+import Grocery from '../models/Grocery'
 
 const router = Router()
 
 // Get all groceries
-router.get('/', (_req, res) => {
-  res.json(getAllGroceries())
+router.get('/', async (_req, res) => {
+  const groceries = await Grocery.find().sort({ expiresAt: 1 })
+  res.json(groceries)
 })
 
 // Get groceries expiring within N days (default 3)
-router.get('/expiring', (req, res) => {
+router.get('/expiring', async (req, res) => {
   const daysParam = Number(req.query.days ?? 3)
   const days = Number.isNaN(daysParam) || daysParam < 0 ? 3 : daysParam
 
@@ -22,84 +18,85 @@ router.get('/expiring', (req, res) => {
   const threshold = new Date()
   threshold.setDate(now.getDate() + days)
 
-  const expiring = getAllGroceries()
-    .filter(item => {
-      const expires = new Date(item.expiresAt)
-      return expires >= now && expires <= threshold
-    })
-    .sort(
-      (a, b) =>
-        new Date(a.expiresAt).getTime() -
-        new Date(b.expiresAt).getTime()
-    )
+  const groceries = await Grocery.find({
+    expiresAt: { $gte: now, $lte: threshold },
+  }).sort({ expiresAt: 1 })
 
-  res.json(expiring)
+  res.json(groceries)
 })
 
-// Add grocery
-router.post('/', (req, res) => {
-  const newGrocery = addGrocery(req.body)
-  res.status(201).json(newGrocery)
+// Get expired groceries
+router.get('/expired', async (_req, res) => {
+  const now = new Date()
+
+  const groceries = await Grocery.find({
+    expiresAt: { $lt: now },
+  }).sort({ expiresAt: 1 })
+
+  res.json(groceries)
+})
+
+// Get fresh groceries (beyond 3 days)
+router.get('/fresh', async (_req, res) => {
+  const now = new Date()
+  const threshold = new Date()
+  threshold.setDate(now.getDate() + 3)
+
+  const groceries = await Grocery.find({
+    expiresAt: { $gt: threshold },
+  }).sort({ expiresAt: 1 })
+
+  res.json(groceries)
+})
+
+// Add grocery (with duplicate merge logic)
+router.post('/', async (req, res) => {
+  const { name, quantity, expiresAt } = req.body
+
+  const existing = await Grocery.findOne({
+    name: new RegExp(`^${name}$`, 'i'),
+    expiresAt,
+  })
+
+  if (existing) {
+    existing.quantity += quantity
+    await existing.save()
+    return res.json(existing)
+  }
+
+  const newItem = await Grocery.create({
+    name,
+    quantity,
+    expiresAt,
+  })
+
+  res.status(201).json(newItem)
 })
 
 // Update grocery
-router.put('/:id', (req, res) => {
-  const id = Number(req.params.id)
-  if (Number.isNaN(id))
-    return res.status(400).json({ error: 'Invalid ID' })
+router.put('/:id', async (req, res) => {
+  const updated = await Grocery.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    { new: true }
+  )
 
-  const updated = updateGrocery(id, req.body)
-  if (!updated)
+  if (!updated) {
     return res.status(404).json({ error: 'Grocery not found' })
+  }
 
   res.json(updated)
 })
 
 // Delete grocery
-router.delete('/:id', (req, res) => {
-  const id = Number(req.params.id)
-  if (Number.isNaN(id))
-    return res.status(400).json({ error: 'Invalid ID' })
+router.delete('/:id', async (req, res) => {
+  const deleted = await Grocery.findByIdAndDelete(req.params.id)
 
-  const success = deleteGrocery(id)
-  if (!success)
+  if (!deleted) {
     return res.status(404).json({ error: 'Grocery not found' })
+  }
 
   res.status(204).send()
-})
-
-// Get expired groceries
-router.get('/expired', (_req, res) => {
-  const now = new Date()
-
-  const expired = getAllGroceries()
-    .filter(item => new Date(item.expiresAt) < now)
-    .sort(
-      (a, b) =>
-        new Date(a.expiresAt).getTime() -
-        new Date(b.expiresAt).getTime()
-    )
-
-  res.json(expired)
-})
-
-router.get('/fresh', (_req, res) => {
-  const now = new Date()
-  const threshold = new Date()
-  threshold.setDate(now.getDate() + 3)
-
-  const fresh = getAllGroceries()
-    .filter(item => {
-      const expires = new Date(item.expiresAt)
-      return expires > threshold
-    })
-    .sort(
-      (a, b) =>
-        new Date(a.expiresAt).getTime() -
-        new Date(b.expiresAt).getTime()
-    )
-
-  res.json(fresh)
 })
 
 export default router

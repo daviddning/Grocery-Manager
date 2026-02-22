@@ -31,7 +31,7 @@ function App() {
     refreshData()
   }, [])
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     await deleteGrocery(id)
     await refreshData()
   }

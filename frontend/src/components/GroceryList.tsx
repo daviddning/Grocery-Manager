@@ -4,7 +4,7 @@ import { updateGrocery } from '../api'
 
 interface GroceryListProps {
   groceries: Grocery[]
-  onDelete: (id: number) => void | Promise<void>
+  onDelete: (id: string) => void | Promise<void>
   onUpdate: () => void | Promise<void>
 }
 
@@ -13,21 +13,22 @@ export function GroceryList({
   onDelete,
   onUpdate,
 }: GroceryListProps) {
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [editQuantity, setEditQuantity] = useState(0)
   const [editExpiresAt, setEditExpiresAt] = useState('')
 
   const startEdit = (g: Grocery) => {
-    setEditingId(g.id!)
+    setEditingId(g._id!)
     setEditQuantity(g.quantity)
-    setEditExpiresAt(g.expiresAt)
+    setEditExpiresAt(g.expiresAt.slice(0, 10)) // format for <input type="date" />
   }
 
-  const saveEdit = async (id: number) => {
+  const saveEdit = async (id: string) => {
     await updateGrocery(id, {
       quantity: editQuantity,
       expiresAt: editExpiresAt,
     })
+
     await onUpdate()
     setEditingId(null)
   }
@@ -35,8 +36,8 @@ export function GroceryList({
   return (
     <ul>
       {groceries.map(g => (
-        <li key={g.id}>
-          {editingId === g.id ? (
+        <li key={g._id}>
+          {editingId === g._id ? (
             <>
               <input
                 type="number"
@@ -52,7 +53,7 @@ export function GroceryList({
                   setEditExpiresAt(e.target.value)
                 }
               />
-              <button onClick={() => saveEdit(g.id!)}>
+              <button onClick={() => saveEdit(g._id!)}>
                 Save
               </button>
               <button onClick={() => setEditingId(null)}>
@@ -61,11 +62,12 @@ export function GroceryList({
             </>
           ) : (
             <>
-              {g.name} — {g.quantity} — {g.expiresAt}{' '}
+              {g.name} — {g.quantity} —{' '}
+              {new Date(g.expiresAt).toLocaleDateString()}{' '}
               <button onClick={() => startEdit(g)}>
                 Edit
               </button>
-              <button onClick={() => onDelete(g.id!)}>
+              <button onClick={() => onDelete(g._id!)}>
                 Delete
               </button>
             </>
