@@ -1,12 +1,11 @@
-import React, { useState } from 'react'
-import type { Grocery } from '../api'
+import { useState } from 'react'
 import { addGrocery } from '../api'
 
 interface Props {
-  onAdd: (g: Grocery) => void
+  onAdd: () => void | Promise<void>
 }
 
-export const AddGroceryForm: React.FC<Props> = ({ onAdd }) => {
+export function AddGroceryForm({ onAdd }: Props) {
   const [name, setName] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [expiresAt, setExpiresAt] = useState('')
@@ -14,8 +13,10 @@ export const AddGroceryForm: React.FC<Props> = ({ onAdd }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name || !expiresAt) return
-    const newGrocery = await addGrocery({ name, quantity, expiresAt })
-    onAdd(newGrocery)
+
+    await addGrocery({ name, quantity, expiresAt })
+    await onAdd()
+
     setName('')
     setQuantity(1)
     setExpiresAt('')
@@ -32,7 +33,6 @@ export const AddGroceryForm: React.FC<Props> = ({ onAdd }) => {
       <input
         type="number"
         min={1}
-        placeholder="Quantity"
         value={quantity}
         onChange={e => setQuantity(Number(e.target.value))}
       />
@@ -41,7 +41,7 @@ export const AddGroceryForm: React.FC<Props> = ({ onAdd }) => {
         value={expiresAt}
         onChange={e => setExpiresAt(e.target.value)}
       />
-      <button type="submit">Add Grocery</button>
+      <button type="submit">Add</button>
     </form>
   )
 }

@@ -1,60 +1,105 @@
 import { Router } from 'express'
-import { getAllGroceries, addGrocery, updateGrocery, deleteGrocery } from '../data/groceries'
-import express from 'express'
-import { Grocery } from '../data/groceries'
+import {
+  getAllGroceries,
+  addGrocery,
+  updateGrocery,
+  deleteGrocery,
+} from '../data/groceries'
+
 const router = Router()
 
 // Get all groceries
-router.get('/', (req, res) => {
+router.get('/', (_req, res) => {
   res.json(getAllGroceries())
 })
 
-// Add a grocery
+// Get groceries expiring within N days (default 3)
+router.get('/expiring', (req, res) => {
+  const daysParam = Number(req.query.days ?? 3)
+  const days = Number.isNaN(daysParam) || daysParam < 0 ? 3 : daysParam
+
+  const now = new Date()
+  const threshold = new Date()
+  threshold.setDate(now.getDate() + days)
+
+  const expiring = getAllGroceries()
+    .filter(item => {
+      const expires = new Date(item.expiresAt)
+      return expires >= now && expires <= threshold
+    })
+    .sort(
+      (a, b) =>
+        new Date(a.expiresAt).getTime() -
+        new Date(b.expiresAt).getTime()
+    )
+
+  res.json(expiring)
+})
+
+// Add grocery
 router.post('/', (req, res) => {
   const newGrocery = addGrocery(req.body)
   res.status(201).json(newGrocery)
 })
 
-// Update a grocery
+// Update grocery
 router.put('/:id', (req, res) => {
   const id = Number(req.params.id)
-  if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' })
+  if (Number.isNaN(id))
+    return res.status(400).json({ error: 'Invalid ID' })
 
   const updated = updateGrocery(id, req.body)
-  if (!updated) return res.status(404).json({ error: 'Grocery not found' })
+  if (!updated)
+    return res.status(404).json({ error: 'Grocery not found' })
 
   res.json(updated)
 })
 
-// Delete a grocery
+// Delete grocery
 router.delete('/:id', (req, res) => {
-  const success = deleteGrocery(Number(req.params.id))
-  if (!success) return res.status(404).json({ error: 'Grocery not found' })
+  const id = Number(req.params.id)
+  if (Number.isNaN(id))
+    return res.status(400).json({ error: 'Invalid ID' })
+
+  const success = deleteGrocery(id)
+  if (!success)
+    return res.status(404).json({ error: 'Grocery not found' })
+
   res.status(204).send()
 })
 
-let groceries: Grocery[] = []
+// Get expired groceries
+router.get('/expired', (_req, res) => {
+  const now = new Date()
 
-// Update grocery by ID
-router.put('/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const { name, quantity, expiresAt } = req.body
+  const expired = getAllGroceries()
+    .filter(item => new Date(item.expiresAt) < now)
+    .sort(
+      (a, b) =>
+        new Date(a.expiresAt).getTime() -
+        new Date(b.expiresAt).getTime()
+    )
 
-  const grocery = groceries.find(g => g.id === id)
-  if (!grocery) {
-    return res.status(404).json({ error: 'Grocery not found' })
-  }
+  res.json(expired)
+})
 
-  // Update fields if provided
-  if (name !== undefined) grocery.name = name
-  if (quantity !== undefined) grocery.quantity = quantity
-  if (expiresAt !== undefined) grocery.expiresAt = expiresAt
+router.get('/fresh', (_req, res) => {
+  const now = new Date()
+  const threshold = new Date()
+  threshold.setDate(now.getDate() + 3)
 
-  res.json(grocery)
+  const fresh = getAllGroceries()
+    .filter(item => {
+      const expires = new Date(item.expiresAt)
+      return expires > threshold
+    })
+    .sort(
+      (a, b) =>
+        new Date(a.expiresAt).getTime() -
+        new Date(b.expiresAt).getTime()
+    )
+
+  res.json(fresh)
 })
 
 export default router
-
-
-
-

@@ -1,17 +1,21 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import type { Grocery } from '../api'
 import { updateGrocery } from '../api'
 
 interface GroceryListProps {
   groceries: Grocery[]
-  onDelete: (id: number) => void
-  onUpdate: (updated: Grocery) => void
+  onDelete: (id: number) => void | Promise<void>
+  onUpdate: () => void | Promise<void>
 }
 
-export function GroceryList({ groceries, onDelete, onUpdate }: GroceryListProps) {
+export function GroceryList({
+  groceries,
+  onDelete,
+  onUpdate,
+}: GroceryListProps) {
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [editQuantity, setEditQuantity] = useState<number>(0)
-  const [editExpiresAt, setEditExpiresAt] = useState<string>('')
+  const [editQuantity, setEditQuantity] = useState(0)
+  const [editExpiresAt, setEditExpiresAt] = useState('')
 
   const startEdit = (g: Grocery) => {
     setEditingId(g.id!)
@@ -20,11 +24,11 @@ export function GroceryList({ groceries, onDelete, onUpdate }: GroceryListProps)
   }
 
   const saveEdit = async (id: number) => {
-    const updated = await updateGrocery(id, {
+    await updateGrocery(id, {
       quantity: editQuantity,
       expiresAt: editExpiresAt,
     })
-    onUpdate(updated)
+    await onUpdate()
     setEditingId(null)
   }
 
@@ -37,21 +41,33 @@ export function GroceryList({ groceries, onDelete, onUpdate }: GroceryListProps)
               <input
                 type="number"
                 value={editQuantity}
-                onChange={e => setEditQuantity(Number(e.target.value))}
+                onChange={e =>
+                  setEditQuantity(Number(e.target.value))
+                }
               />
               <input
                 type="date"
                 value={editExpiresAt}
-                onChange={e => setEditExpiresAt(e.target.value)}
+                onChange={e =>
+                  setEditExpiresAt(e.target.value)
+                }
               />
-              <button onClick={() => saveEdit(g.id!)}>Save</button>
-              <button onClick={() => setEditingId(null)}>Cancel</button>
+              <button onClick={() => saveEdit(g.id!)}>
+                Save
+              </button>
+              <button onClick={() => setEditingId(null)}>
+                Cancel
+              </button>
             </>
           ) : (
             <>
-              {g.name} - {g.quantity} - {g.expiresAt}
-              <button onClick={() => startEdit(g)}>Edit</button>
-              <button onClick={() => onDelete(g.id!)}>Delete</button>
+              {g.name} — {g.quantity} — {g.expiresAt}{' '}
+              <button onClick={() => startEdit(g)}>
+                Edit
+              </button>
+              <button onClick={() => onDelete(g.id!)}>
+                Delete
+              </button>
             </>
           )}
         </li>
