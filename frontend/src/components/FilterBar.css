@@ -1,0 +1,145 @@
+.filter-bar {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.filter-bar h3 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  color: #2c3e50;
+}
+
+.filter-bar h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #34495e;
+}
+
+.filter-section {
+  margin-bottom: 24px;
+}
+
+.filter-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 6px;
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Quick Filters */
+.quick-filters {
+  border-top: 1px solid #e9ecef;
+  padding-top: 20px;
+}
+
+.quick-filter-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quick-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quick-filter-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.quick-filter-btn.expiring-soon {
+  border-color: #e67e22;
+  color: #e65100;
+}
+
+.quick-filter-btn.expiring-soon:hover {
+  background: #fff3e0;
+}
+
+.quick-filter-btn.expired {
+  border-color: #e74c3c;
+  color: #c0392b;
+}
+
+.quick-filter-btn.expired:hover {
+  background: #fef5f5;
+}
+
+.quick-filter-btn.low-stock {
+  border-color: #f39c12;
+  color: #e67e22;
+}
+
+.quick-filter-btn.low-stock:hover {
+  background: #fff8e1;
+}
+
+.quick-filter-btn .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  background: currentColor;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .filter-controls {
+    grid-template-columns: 1fr;
+  }
+  
+  .quick-filter-buttons {
+    flex-direction: column;
+  }
+  
+  .quick-filter-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
