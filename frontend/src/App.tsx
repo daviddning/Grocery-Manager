@@ -1,89 +1,138 @@
 import { useEffect, useState } from 'react'
-import type { Grocery } from './api'
-import {
-  getExpiredGroceries,
-  getExpiringGroceries,
-  getFreshGroceries,
-  deleteGrocery,
-} from './api'
-import { GroceryList } from './components/GroceryList'
 import { AddGroceryForm } from './components/AddGroceryForm'
+import { GroceryList } from './components/GroceryList'
+import { Dashboard } from './components/Dashboard'
+import { FilterBar } from './components/FilterBar'
+import { NotificationPanel } from './components/NotificationPanel'
+import {
+  getGroceries,
+  deleteGrocery,
+  deleteExpiredGroceries,
+  type Grocery,
+  type FilterParams,
+} from './api'
+import './App.css'
 
 function App() {
-  const [expiringSoon, setExpiringSoon] = useState<Grocery[]>([])
-  const [expired, setExpired] = useState<Grocery[]>([])
-  const [fresh, setFresh] = useState<Grocery[]>([])
-
-  const refreshData = async () => {
-    const [expiredItems, expiringItems, freshItems] =
-      await Promise.all([
-        getExpiredGroceries(),
-        getExpiringGroceries(3),
-        getFreshGroceries(),
-      ])
-
-    setExpired(expiredItems)
-    setExpiringSoon(expiringItems)
-    setFresh(freshItems)
-  }
+  const [groceries, setGroceries] = useState<Grocery[]>([])
+  const [filters, setFilters] = useState<FilterParams>({
+    category: 'all',
+    status: 'all',
+    search: '',
+    sortBy: 'expiresAt',
+  })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    refreshData()
-  }, [])
+    loadGroceries()
+  }, [filters])
+
+  const loadGroceries = async () => {
+    setLoading(true)
+    try {
+      const data = await getGroceries(filters)
+      setGroceries(data)
+    } catch (error) {
+      console.error('Failed to load groceries:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleDelete = async (id: string) => {
-    await deleteGrocery(id)
-    await refreshData()
+    if (!confirm('Are you sure you want to delete this item?')) return
+    
+    try {
+      await deleteGrocery(id)
+      await loadGroceries()
+    } catch (error) {
+      console.error('Failed to delete grocery:', error)
+      alert('Failed to delete item')
+    }
   }
 
-  const handleUpdate = async () => {
-    await refreshData()
+  const handleBulkDeleteExpired = async () => {
+    const expiredCount = groceries.filter(g => g.expirationStatus === 'expired').length
+    
+    if (expiredCount === 0) {
+      alert('No expired items to delete')
+      return
+    }
+
+    if (
+      !confirm(
+        `Are you sure you want to delete all ${expiredCount} expired item${
+          expiredCount !== 1 ? 's' : ''
+        }?`
+      )
+    ) {
+      return
+    }
+
+    try {
+      await deleteExpiredGroceries()
+      await loadGroceries()
+      alert(`Deleted ${expiredCount} expired item${expiredCount !== 1 ? 's' : ''}`)
+    } catch (error) {
+      console.error('Failed to delete expired items:', error)
+      alert('Failed to delete expired items')
+    }
   }
+
+  const expiringSoonCount = groceries.filter(
+    g => g.expirationStatus === 'expiring-soon'
+  ).length
+  const expiredCount = groceries.filter(g => g.expirationStatus === 'expired').length
+  const lowStockCount = groceries.filter(g => g.isLowStock).length
 
   return (
-    <div>
-      <h1>KitchenHub</h1>
+    <div className="app">
+      <NotificationPanel />
+      
+      <header className="app-header">
+        <h1>🥑 Grocery Manager</h1>
+        <p className="app-subtitle">
+          Track your groceries, prevent waste, and never let food expire again
+        </p>
+      </header>
 
-      <p>
-        <strong>{fresh.length}</strong> fresh •{' '}
-        <strong>{expired.length}</strong> expired •{' '}
-        <strong>{expiringSoon.length}</strong> expiring in 3 days
-      </p>
+      <main className="app-main">
+        <Dashboard />
 
-      <AddGroceryForm onAdd={refreshData} />
+        <AddGroceryForm onAdd={loadGroceries} />
 
-      <h2>🔴 Expired</h2>
-      {expired.length === 0 ? (
-        <p>No expired items 🎉</p>
-      ) : (
-        <GroceryList
-          groceries={expired}
-          onDelete={handleDelete}
-          onUpdate={handleUpdate}
-        />
-      )}
+        <div className="grocery-section">
+          <div className="section-header">
+            <h2>Your Groceries ({groceries.length})</h2>
+            {expiredCount > 0 && (
+              <button className="bulk-delete-btn" onClick={handleBulkDeleteExpired}>
+                🗑️ Delete All Expired ({expiredCount})
+              </button>
+            )}
+          </div>
 
-      <h2>🟡 Expiring Soon</h2>
-      {expiringSoon.length === 0 ? (
-        <p>No items expiring soon 🎉</p>
-      ) : (
-        <GroceryList
-          groceries={expiringSoon}
-          onDelete={handleDelete}
-          onUpdate={handleUpdate}
-        />
-      )}
+          <FilterBar
+            onFilterChange={setFilters}
+            expiringSoonCount={expiringSoonCount}
+            expiredCount={expiredCount}
+            lowStockCount={lowStockCount}
+          />
 
-      <h2>🟢 Fresh</h2>
-      {fresh.length === 0 ? (
-        <p>No fresh items</p>
-      ) : (
-        <GroceryList
-          groceries={fresh}
-          onDelete={handleDelete}
-          onUpdate={handleUpdate}
-        />
-      )}
+          {loading ? (
+            <div className="loading-state">Loading groceries...</div>
+          ) : (
+            <GroceryList
+              groceries={groceries}
+              onDelete={handleDelete}
+              onUpdate={loadGroceries}
+            />
+          )}
+        </div>
+      </main>
+
+      <footer className="app-footer">
+        <p>Made with ❤️ to reduce food waste</p>
+      </footer>
     </div>
   )
 }
