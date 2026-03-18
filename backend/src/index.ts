@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import groceriesRouter from './routes/groceries'
 import { connectDB } from './config/db'
+import notificationRoutes from './routes/notifications'
 
 connectDB()
 
@@ -21,3 +22,6 @@ app.get('/api/health', (req, res) => {
 
 // Start server
 app.listen(3001, () => console.log('Server running on port 3001'))
+
+// Notifications
+app.use('/api/notifications', notificationRoutes)
