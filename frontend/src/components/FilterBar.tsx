@@ -1,4 +1,4 @@
-import type { Category, ExpirationStatus } from '../api'
+import type { ExpirationStatus } from '../api'
 import './FilterBar.css'
 
 interface FilterBarProps {
