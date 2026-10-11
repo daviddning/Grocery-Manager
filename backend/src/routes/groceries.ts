@@ -1,13 +1,21 @@
 import { Router } from 'express'
 import Grocery from '../models/Grocery'
+import { getCached, setCached, invalidate } from '../config/cache'
 
 const router = Router()
+
+const CACHE_PREFIX = 'groceries:'
+const LIST_TTL = 30
 
 // Get all groceries with optional filters
 router.get('/', async (req, res) => {
   try {
     const { category, status, search, sortBy = 'expiresAt' } = req.query
-    
+
+    const cacheKey = `${CACHE_PREFIX}list:${JSON.stringify(req.query)}`
+    const cached = await getCached(cacheKey)
+    if (cached) return res.json(cached)
+
     let query: any = {}
     
     // Filter by category
@@ -46,6 +54,7 @@ router.get('/', async (req, res) => {
     else if (sortBy === 'purchaseDate') sortOptions.purchaseDate = -1
     
     const groceries = await Grocery.find(query).sort(sortOptions)
+    await setCached(cacheKey, groceries, LIST_TTL)
     res.json(groceries)
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch groceries' })
@@ -107,13 +116,11 @@ router.get('/fresh', async (_req, res) => {
 // Get low stock items
 router.get('/low-stock', async (_req, res) => {
   try {
-    const groceries = await Grocery.find().sort({ quantity: 1 })
-    
-    // Filter items where quantity <= lowStockThreshold
-    const lowStockItems = groceries.filter(
-      item => item.quantity <= item.lowStockThreshold
-    )
-    
+    // Filter in the database rather than loading every document into memory.
+    const lowStockItems = await Grocery.find({
+      $expr: { $lte: ['$quantity', '$lowStockThreshold'] },
+    }).sort({ quantity: 1 })
+
     res.json(lowStockItems)
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch low stock items' })
@@ -186,6 +193,7 @@ router.post('/', async (req, res) => {
       if (rest.unit) existing.unit = rest.unit
       
       await existing.save()
+      await invalidate(CACHE_PREFIX)
       return res.json(existing)
     }
 
@@ -196,6 +204,7 @@ router.post('/', async (req, res) => {
       ...rest
     })
 
+    await invalidate(CACHE_PREFIX)
     res.status(201).json(newItem)
   } catch (error) {
     res.status(400).json({ error: 'Failed to create grocery item' })
@@ -215,6 +224,7 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Grocery not found' })
     }
 
+    await invalidate(CACHE_PREFIX)
     res.json(updated)
   } catch (error) {
     res.status(400).json({ error: 'Failed to update grocery item' })
@@ -230,6 +240,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Grocery not found' })
     }
 
+    await invalidate(CACHE_PREFIX)
     res.status(204).send()
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete grocery item' })
@@ -244,6 +255,7 @@ router.delete('/expired/bulk', async (_req, res) => {
       expiresAt: { $lt: now } 
     })
     
+    await invalidate(CACHE_PREFIX)
     res.json({ deletedCount: result.deletedCount })
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete expired items' })

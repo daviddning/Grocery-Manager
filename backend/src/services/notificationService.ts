@@ -25,9 +25,13 @@ export async function getNotifications(): Promise<Notification[]> {
     const threeDaysFromNow = new Date()
     threeDaysFromNow.setDate(now.getDate() + 3)
 
-    const expiringSoon = await Grocery.find({
-        expiresAt: { $gte: now, $lte: threeDaysFromNow },
-    })
+    // Fetch enough to classify every bucket in a single round trip, then
+    // split in memory (the buckets are mutually exclusive ranges).
+    const allItems = await Grocery.find()
+
+    const expiringSoon = allItems.filter(
+        (item) => item.expiresAt >= now && item.expiresAt <= threeDaysFromNow,
+    )
 
     expiringSoon.forEach(item => {
         const days = item.daysUntilExpiration || 0
@@ -47,9 +51,7 @@ export async function getNotifications(): Promise<Notification[]> {
     })
 
     // Get expired items
-    const expired = await Grocery.find({
-        expiresAt: { $lt: now },
-    })
+    const expired = allItems.filter((item) => item.expiresAt < now)
 
     expired.forEach(item => {
         const days = Math.abs(item.daysUntilExpiration || 0)
@@ -69,7 +71,6 @@ export async function getNotifications(): Promise<Notification[]> {
     })
 
     // Get low stock items
-    const allItems = await Grocery.find()
     const lowStockItems = allItems.filter(item => item.quantity <= item.lowStockThreshold)
 
     lowStockItems.forEach(item => {
