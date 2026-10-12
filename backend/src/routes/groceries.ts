@@ -83,6 +83,9 @@ router.get('/', async (req, res) => {
       const sevenDaysFromNow = new Date()
       sevenDaysFromNow.setDate(now.getDate() + 7)
       query.expiresAt = { $gt: sevenDaysFromNow }
+    } else if (status === 'low-stock') {
+      // Matches the per-item threshold, not a fixed quantity.
+      query.$expr = { $lte: ['$quantity', '$lowStockThreshold'] }
     }
     
     // Determine sort order

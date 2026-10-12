@@ -112,6 +112,27 @@ describe('GET /api/groceries', () => {
       'Rice',
     ])
   })
+
+  it('filters low-stock items via status=low-stock', async () => {
+    const res = await request(app).get(`${API}?status=low-stock`)
+    expect(res.status).toBe(200)
+    // Only Bread (quantity 1, default threshold 1) is at or below its threshold.
+    expect(res.body.map((g: { name: string }) => g.name)).toEqual(['Bread'])
+  })
+
+  it('respects a per-item low-stock threshold in the filter', async () => {
+    await Grocery.create({
+      name: 'Coffee',
+      quantity: 3,
+      expiresAt: daysFromNow(20),
+      category: 'Pantry',
+      lowStockThreshold: 5,
+    })
+    const res = await request(app).get(`${API}?status=low-stock`)
+    const names = res.body.map((g: { name: string }) => g.name)
+    expect(names).toContain('Coffee')
+    expect(names).not.toContain('Rice') // qty 10, threshold 1
+  })
 })
 
 describe('derived endpoints', () => {
