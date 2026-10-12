@@ -18,18 +18,27 @@ async function main() {
   await mongoose.connect(process.env.MONGODB_URI)
 
   const Grocery = require(path.join(backendDir, 'dist', 'models', 'Grocery')).default
-  const now = Date.now()
-  const day = 86400000
-  const cats = ['Produce', 'Dairy', 'Bakery', 'Pantry', 'Frozen']
-  const docs = Array.from({ length: 200 }, (_, i) => ({
-    name: `Item ${i}`,
-    quantity: (i % 12) + 1,
-    expiresAt: new Date(now + ((i % 30) - 5) * day),
-    category: cats[i % cats.length],
-    price: (i % 9) + 1.5,
-  }))
-  await Grocery.insertMany(docs)
-  console.log(`seeded ${docs.length} items`)
+
+  // Seed only on request: `SEED=200 node scripts/devserver.js`.
+  // Defaults to an empty database so the app opens with your real data,
+  // not demo rows.
+  const seedCount = Number(process.env.SEED || 0)
+  if (seedCount > 0) {
+    const now = Date.now()
+    const day = 86400000
+    const cats = ['Produce', 'Dairy', 'Bakery', 'Pantry', 'Frozen']
+    const docs = Array.from({ length: seedCount }, (_, i) => ({
+      name: `Item ${i}`,
+      quantity: (i % 12) + 1,
+      expiresAt: new Date(now + ((i % 30) - 5) * day),
+      category: cats[i % cats.length],
+      price: (i % 9) + 1.5,
+    }))
+    await Grocery.insertMany(docs)
+    console.log(`seeded ${docs.length} items`)
+  } else {
+    console.log('starting with an empty database (set SEED=N to load demo data)')
+  }
 
   const app = require(path.join(backendDir, 'dist', 'app')).default
   app.listen(Number(process.env.PORT), () =>
