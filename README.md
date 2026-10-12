@@ -5,16 +5,18 @@ it expires, and waste less food. TypeScript end to end — Express 5 API, React 
 front end, MongoDB for persistence and an optional Redis read-through cache.
 
 [![CI](https://github.com/daviddning/Grocery-Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/daviddning/Grocery-Manager/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-39%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-41%20passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-80%25-green)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-<!-- Replace with a real screenshot or GIF of the dashboard. -->
-<!-- ![Dashboard](docs/screenshot.png) -->
-<img width="1852" height="972" alt="image" src="https://github.com/user-attachments/assets/6280b057-f92b-4217-a452-8ab548597adf" />
-<img width="1440" height="976" alt="image" src="https://github.com/user-attachments/assets/71f8094e-a971-49fb-935d-278eb9accbc0" />
+<p align="center">
+  <img width="900" alt="Grocery Manager dashboard: inventory stats, expiry forecast and item list" src="https://github.com/user-attachments/assets/6280b057-f92b-4217-a452-8ab548597adf" />
+</p>
 
+<p align="center">
+  <img width="900" alt="Grocery Manager filtering and notifications" src="https://github.com/user-attachments/assets/71f8094e-a971-49fb-935d-278eb9accbc0" />
+</p>
 
 ---
 
@@ -81,7 +83,7 @@ backend/                  Express 5 + TypeScript
   src/routes/             groceries, notifications
   src/services/           analyticsService, notificationService
   src/config/             db, cache, transaction
-  src/__tests__/          Jest + Supertest suite (36 tests)
+  src/__tests__/          Jest + Supertest suite (38 tests)
 
 scripts/                  devserver.js, loadtest.js, benchmark.js
 docker-compose.yml        frontend + backend + mongo + redis
@@ -150,12 +152,26 @@ npm run dev            # http://localhost:5173
 
 Redis is optional. Leave `REDIS_URL` unset and the cache becomes a no-op.
 
+### No database installed?
+
+`scripts/devserver.js` boots the API against an in-memory MongoDB, so you can
+run the whole stack with nothing but Node:
+
+```bash
+node scripts/devserver.js --demo   # API on :3001, seeded with 28 demo items
+cd frontend && npm run dev         # UI on :5173
+```
+
+Drop `--demo` for an empty database. Data lives in a temp directory and is
+discarded when the process exits — this path is for demos and screenshots, not
+for storing real data.
+
 ---
 
 ## Testing
 
 ```bash
-cd backend  && npm test        # 36 tests — Jest + Supertest + in-memory Mongo
+cd backend  && npm test        # 38 tests — Jest + Supertest + in-memory Mongo
 cd frontend && npm test        # 3 tests  — Vitest + Testing Library
 ```
 
