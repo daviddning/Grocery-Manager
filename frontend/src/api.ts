@@ -69,7 +69,7 @@ export interface GroceryInput {
 
 export interface FilterParams {
   category?: string
-  status?: ExpirationStatus | 'all'
+  status?: ExpirationStatus | 'low-stock' | 'all'
   search?: string
   sortBy?: 'expiresAt' | 'name' | 'category' | 'purchaseDate'
 }
@@ -79,8 +79,9 @@ export interface Analytics {
   expired: number
   expiringSoon: number
   lowStock: number
-  byCategory: Array<{ _id: string; count: number }>
+  byCategory: Array<{ _id: string; count: number; value?: number }>
   totalValue: number
+  wasteForecast?: Array<{ bucket: string; items: number; value: number }>
 }
 
 // Fetch groceries with optional filters
