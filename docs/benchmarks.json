@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-10-12T00:10:47.268Z",
+  "documents": 20000,
+  "queryPattern": "name + expiresAt (compound index)",
+  "scan": {
+    "min": 18.28,
+    "median": 58,
+    "p95": 77.15
+  },
+  "indexed": {
+    "min": 1.35,
+    "median": 1.64,
+    "p95": 1.99
+  },
+  "medianReductionPct": 97.2,
+  "indexUsed": "name_1_expiresAt_1"
+}

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import Grocery from '../models/Grocery'
 import { getCached, setCached, invalidate } from '../config/cache'
+import { getAnalytics } from '../services/analyticsService'
 
 const router = Router()
 
@@ -127,46 +128,11 @@ router.get('/low-stock', async (_req, res) => {
   }
 })
 
-// Get analytics/stats
+// Get analytics/stats (single-pass aggregation, see analyticsService)
 router.get('/analytics', async (_req, res) => {
   try {
-    const now = new Date()
-    const threeDays = new Date()
-    threeDays.setDate(now.getDate() + 3)
-    
-    const [
-      total,
-      expired,
-      expiringSoon,
-      lowStock,
-      byCategory,
-      totalValue
-    ] = await Promise.all([
-      Grocery.countDocuments(),
-      Grocery.countDocuments({ expiresAt: { $lt: now } }),
-      Grocery.countDocuments({ 
-        expiresAt: { $gte: now, $lte: threeDays } 
-      }),
-      Grocery.find().then(items => 
-        items.filter(i => i.quantity <= i.lowStockThreshold).length
-      ),
-      Grocery.aggregate([
-        { $group: { _id: '$category', count: { $sum: 1 } } },
-        { $sort: { count: -1 } }
-      ]),
-      Grocery.aggregate([
-        { $group: { _id: null, total: { $sum: '$price' } } }
-      ])
-    ])
-    
-    res.json({
-      total,
-      expired,
-      expiringSoon,
-      lowStock,
-      byCategory,
-      totalValue: totalValue[0]?.total || 0
-    })
+    const analytics = await getAnalytics()
+    res.json(analytics)
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch analytics' })
   }
