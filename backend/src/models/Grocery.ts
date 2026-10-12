@@ -85,7 +85,7 @@ const GrocerySchema = new mongoose.Schema(
 )
 
 // Indexes for performance
-GrocerySchema.index({ name: 1, expiresAt: 1 })
+GrocerySchema.index({ name: 1, expiresAt: 1 }, { unique: true })
 GrocerySchema.index({ category: 1 })
 GrocerySchema.index({ expiresAt: 1 })
 

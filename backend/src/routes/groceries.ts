@@ -8,6 +8,44 @@ const router = Router()
 const CACHE_PREFIX = 'groceries:'
 const LIST_TTL = 30
 
+/**
+ * Atomic create-or-increment.
+ *
+ * `findOneAndUpdate(..., { upsert: true })` can lose a race: two concurrent
+ * upserts may both miss the filter and one insert fails with a duplicate-key
+ * error against the unique {name, expiresAt} index. Retrying the same
+ * operation turns that into a plain increment, which is the desired outcome.
+ */
+async function upsertIncrement(
+  name: string,
+  expiresAt: Date,
+  quantity: number,
+  setFields: Record<string, unknown>,
+  attempts = 5,
+) {
+  const nameMatch = new RegExp(`^${name}$`, 'i')
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await Grocery.findOneAndUpdate(
+        { name: nameMatch, expiresAt },
+        {
+          $inc: { quantity },
+          // The filter uses a RegExp, which Mongo cannot use as an inserted
+          // value, so the literal fields must be supplied via $setOnInsert.
+          $setOnInsert: { name, expiresAt },
+          ...(Object.keys(setFields).length ? { $set: setFields } : {}),
+        },
+        { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true },
+      )
+    } catch (error) {
+      const code = (error as { code?: number })?.code
+      // 11000 = duplicate key. The row now exists, so retrying increments it.
+      if (code === 11000 && attempt < attempts - 1) continue
+      throw error
+    }
+  }
+}
+
 // Get all groceries with optional filters
 router.get('/', async (req, res) => {
   try {
@@ -143,35 +181,40 @@ router.post('/', async (req, res) => {
   try {
     const { name, quantity, expiresAt, ...rest } = req.body
 
-    // Check for existing item with same name and expiration
-    const existing = await Grocery.findOne({
-      name: new RegExp(`^${name}$`, 'i'),
-      expiresAt,
-    })
-
-    if (existing) {
-      existing.quantity += quantity
-      
-      // Update other fields if provided
-      if (rest.price !== undefined) existing.price = rest.price
-      if (rest.store) existing.store = rest.store
-      if (rest.category) existing.category = rest.category
-      if (rest.unit) existing.unit = rest.unit
-      
-      await existing.save()
-      await invalidate(CACHE_PREFIX)
-      return res.json(existing)
+    // Validate the fields used in the match filter up front. findOneAndUpdate
+    // with upsert does not run schema validators against the *filter*, so an
+    // upsert with a missing name/expiresAt would happily insert a broken row.
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'name is required' })
+    }
+    if (quantity === undefined || typeof quantity !== 'number' || quantity < 0) {
+      return res.status(400).json({ error: 'quantity must be a non-negative number' })
+    }
+    const expiry = new Date(expiresAt)
+    if (!expiresAt || Number.isNaN(expiry.getTime())) {
+      return res.status(400).json({ error: 'expiresAt must be a valid date' })
     }
 
-    const newItem = await Grocery.create({
-      name,
-      quantity,
-      expiresAt,
-      ...rest
-    })
+    const escaped = String(name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+    // Atomic find-and-increment. A read-then-save would lose updates when two
+    // requests for the same item race; $inc applies the delta on the server.
+    // upsert creates the document when no match exists, so a single round trip
+    // covers both branches.
+    const setFields: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(rest)) {
+      if (v !== undefined) setFields[k] = v
+    }
+
+    const before = await Grocery.findOne({
+      name: new RegExp(`^${escaped}$`, 'i'),
+      expiresAt: expiry,
+    }).select('_id')
+
+    const updated = await upsertIncrement(name, expiry, quantity, setFields)
 
     await invalidate(CACHE_PREFIX)
-    res.status(201).json(newItem)
+    res.status(before ? 200 : 201).json(updated)
   } catch (error) {
     res.status(400).json({ error: 'Failed to create grocery item' })
   }
