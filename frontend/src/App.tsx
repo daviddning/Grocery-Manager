@@ -48,13 +48,19 @@ function App() {
 
   return (
     <div className="app">
-      <NotificationPanel />
-
       <header className="app-header">
-        <h1>🥑 Grocery Manager</h1>
-        <p className="app-subtitle">
-          Track your groceries, prevent waste, and never let food expire again
-        </p>
+        <div className="app-header-inner">
+          <div className="app-logo" aria-hidden="true">
+            🥑
+          </div>
+          <div>
+            <h1>Grocery Manager</h1>
+            <p className="app-subtitle">
+              Track inventory, curb waste, never miss an expiry
+            </p>
+          </div>
+        </div>
+        <NotificationPanel />
       </header>
 
       <main className="app-main">
@@ -64,10 +70,12 @@ function App() {
 
         <div className="grocery-section">
           <div className="section-header">
-            <h2>Your Groceries ({counts.total})</h2>
+            <h2>
+              Your Groceries <span className="count">({counts.total})</span>
+            </h2>
             {counts.expired > 0 && (
-              <button className="bulk-delete-btn" onClick={handleBulkDeleteExpired}>
-                🗑️ Delete All Expired ({counts.expired})
+              <button className="btn-danger" onClick={handleBulkDeleteExpired}>
+                Delete all expired ({counts.expired})
               </button>
             )}
           </div>
