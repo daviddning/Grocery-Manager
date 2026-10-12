@@ -1,64 +1,28 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useNotifications } from '../hooks/useNotifications'
+import type { Notification } from '../api/notifications'
 import './NotificationPanel.css'
 
-interface Notification {
-  type: 'expiring-soon' | 'expired' | 'low-stock'
-  item: {
-    id: string
-    name: string
-    quantity: number
-    unit: string
-    expiresAt?: string
-    daysUntilExpiration?: number
+function getIcon(type: Notification['type']): string {
+  switch (type) {
+    case 'expiring-soon':
+      return '⏰'
+    case 'expired':
+      return '❌'
+    case 'low-stock':
+      return '⚠️'
   }
-  message: string
-  priority: 'high' | 'medium' | 'low'
 }
 
-const API_URL = 'http://localhost:3001/api/notifications'
-
 export function NotificationPanel() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const { notifications, loading, highPriorityCount } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    loadNotifications()
-    // Poll for new notifications every 5 minutes
-    const interval = setInterval(loadNotifications, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const loadNotifications = async () => {
-    try {
-      const res = await fetch(API_URL)
-      const data = await res.json()
-      setNotifications(data)
-    } catch (error) {
-      console.error('Failed to load notifications:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getIcon = (type: Notification['type']) => {
-    switch (type) {
-      case 'expiring-soon':
-        return '⏰'
-      case 'expired':
-        return '❌'
-      case 'low-stock':
-        return '⚠️'
-    }
-  }
-
-  const highPriorityCount = notifications.filter(n => n.priority === 'high').length
 
   return (
     <div className="notification-container">
       <button
         className={`notification-bell ${highPriorityCount > 0 ? 'has-alerts' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((o) => !o)}
         title="Notifications"
       >
         🔔
@@ -86,7 +50,7 @@ export function NotificationPanel() {
             ) : (
               notifications.map((notif, index) => (
                 <div
-                  key={index}
+                  key={`${notif.item.id}-${notif.type}-${index}`}
                   className={`notification-item priority-${notif.priority} type-${notif.type}`}
                 >
                   <div className="notification-icon">{getIcon(notif.type)}</div>
