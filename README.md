@@ -12,6 +12,9 @@ front end, MongoDB for persistence and an optional Redis read-through cache.
 
 <!-- Replace with a real screenshot or GIF of the dashboard. -->
 <!-- ![Dashboard](docs/screenshot.png) -->
+<img width="1852" height="972" alt="image" src="https://github.com/user-attachments/assets/6280b057-f92b-4217-a452-8ab548597adf" />
+<img width="1440" height="976" alt="image" src="https://github.com/user-attachments/assets/71f8094e-a971-49fb-935d-278eb9accbc0" />
+
 
 ---
 
